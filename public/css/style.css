@@ -502,6 +502,14 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
 main { flex: 1 0 auto; }
 
 /* how it works: FAQ beside a photo */
-.faq-section { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: 36px; align-items: start; padding-bottom: 8px; }
-.faq-photo { width: 100%; height: auto; border-radius: var(--radius); position: sticky; top: 80px; margin-top: 48px; }
-@media (max-width: 860px) { .faq-section { grid-template-columns: 1fr; } .faq-photo { position: static; margin-top: 0; } }
+.faq-section { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 500px); gap: 36px; align-items: stretch; padding-bottom: 8px; }
+.faq-photo { position: relative; min-height: 280px; }
+.faq-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius); }
+@media (max-width: 860px) { .faq-section { grid-template-columns: 1fr; } .faq-photo { min-height: 0; aspect-ratio: 16 / 9; } }
+
+/* how it works: buying and selling boxes side by side at equal height */
+.how { align-items: stretch; }
+.how .panel + .panel { margin-top: 0; }
+.how .panel { display: flex; flex-direction: column; }
+.how .panel > .btn { align-self: flex-start; margin-top: auto; }
+.how .mini-steps { margin-bottom: 20px; }
