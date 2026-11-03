@@ -36,6 +36,13 @@ app.use((req, res, next) => {
 
 const cookieOpts = { httpOnly: true, sameSite: 'lax', secure: isProd, path: '/' };
 
+// Static files are cached for a week in production, so links to them carry a hash of their
+// contents: a deploy that changes the CSS or JS gives browsers a new URL to fetch.
+const assetVersion = crypto.createHash('sha1')
+  .update(fs.readFileSync(path.join(__dirname, 'public', 'css', 'style.css')))
+  .update(fs.readFileSync(path.join(__dirname, 'public', 'js', 'main.js')))
+  .digest('hex').slice(0, 10);
+
 // ---------- uploads ----------
 
 const uploadDir = path.join(__dirname, 'uploads');
@@ -82,7 +89,7 @@ app.use((req, res, next) => {
   try { consent = JSON.parse(req.cookies.cookie_consent || 'null'); } catch { /* treat as not yet chosen */ }
   res.locals.cookieConsent = consent && consent.v === config.cookieConsentVersion ? consent : null;
 
-  Object.assign(res.locals, { user: req.user, csrf, config, currentPath: req.path, query: req.query, fmtMoney, fmtPrice, fmtDate, mineralSlug });
+  Object.assign(res.locals, { user: req.user, csrf, config, assetVersion, currentPath: req.path, query: req.query, fmtMoney, fmtPrice, fmtDate, mineralSlug });
   next();
 });
 
