@@ -1,0 +1,34 @@
+<%- include('../partials/header') %>
+<%- include('nav') %>
+<div class="wrap admin">
+  <h1>Users</h1>
+  <div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th><th>Listings</th><th>Offers</th><th>Role</th></tr></thead>
+    <tbody>
+      <% rows.forEach(u => { %>
+        <tr>
+          <td><strong><%= u.name %></strong></td>
+          <td><a href="mailto:<%= u.email %>"><%= u.email %></a></td>
+          <td><%= u.phone || '—' %></td>
+          <td><%= fmtDate(u.created_at) %></td>
+          <td><%= u.listing_count %></td>
+          <td><%= u.offer_count %></td>
+          <td>
+            <% if (u.id === user.id) { %><span class="pill">admin (you)</span><% } else { %>
+            <form action="/admin/users/<%= u.id %>/role" method="post" class="inline-form" data-confirm="Change this user's role?">
+              <input type="hidden" name="_csrf" value="<%= csrf %>">
+              <select name="role" data-autosubmit aria-label="Role">
+                <option value="user" <%= u.role === 'user' ? 'selected' : '' %>>User</option>
+                <option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>Admin</option>
+              </select>
+            </form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  </div>
+</div>
+<%- include('../partials/footer') %>

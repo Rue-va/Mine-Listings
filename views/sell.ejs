@@ -1,0 +1,178 @@
+<%- include('partials/header') %>
+<% const f = form || {}; const docs = [].concat(f.documents || []); const action = editing ? `/my/listings/${editing.id}/edit` : '/sell'; %>
+
+<section class="page-banner" style="--banner: url('/img/gold-nuggets.jpg')">
+  <div class="wrap">
+    <nav class="crumbs"><a href="/">Home</a> / <span><%= editing ? 'Edit listing' : 'Sell a mine' %></span></nav>
+    <h1><%= editing ? `Edit “${editing.title}”` : 'List your mine or claim' %></h1>
+    <% if (!editing) { %>
+      <p>Send us the details and we'll get it in front of serious buyers.</p>
+    <% } else if (user && user.role !== 'admin') { %>
+      <p>Saved changes are checked by our team before going live again.</p>
+    <% } %>
+  </div>
+</section>
+
+<div class="wrap sell-layout">
+  <% if (!user) { %>
+    <div>
+      <div class="panel sell-gate">
+        <h2>First, let's get you an account</h2>
+        <p>We need to know who's listing each property so buyers can trust what they see. It's quick, and you'll be able to track your listing's review, offers and enquiries from your dashboard.</p>
+        <div class="btn-row">
+          <a class="btn" href="/register?next=/sell">Create an account</a>
+          <a class="btn btn-ghost" href="/login?next=/sell">I already have one</a>
+        </div>
+      </div>
+      <img class="sell-photo" src="/img/coal-mine-aerial.jpg" alt="Aerial view of an open-cast mine with excavators" width="1000" height="666">
+    </div>
+    <aside class="sell-aside">
+      <%- include('partials/sell-tips') %>
+    </aside>
+  <% } else { %>
+  <form class="panel sell-form" action="<%= action %>" method="post" enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+
+    <% if (errors.length) { %>
+      <div class="notice notice-error" role="alert">
+        <strong>A few things need your attention:</strong>
+        <ul><% errors.forEach(e => { %><li><%= e %></li><% }) %></ul>
+      </div>
+    <% } %>
+
+    <h2 class="form-step"><span>1</span> The basics</h2>
+    <div class="field">
+      <label for="s-title">Listing title</label>
+      <input id="s-title" name="title" required maxlength="120" value="<%= f.title || '' %>" placeholder="e.g. Kwekwe 50ha Gold Claim">
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label for="s-mineral">Main mineral</label>
+        <select id="s-mineral" name="mineral" required>
+          <option value="">Choose…</option>
+          <% config.minerals.forEach(m => { %><option <%= f.mineral === m ? 'selected' : '' %>><%= m %></option><% }) %>
+        </select>
+      </div>
+      <div class="field">
+        <label for="s-stage">Stage</label>
+        <select id="s-stage" name="stage">
+          <option value="">Choose…</option>
+          <% config.stages.forEach(s => { %><option <%= f.stage === s ? 'selected' : '' %>><%= s %></option><% }) %>
+        </select>
+      </div>
+      <div class="field">
+        <label for="s-prov">Province</label>
+        <select id="s-prov" name="province" required>
+          <option value="">Choose…</option>
+          <% config.provinces.forEach(p => { %><option <%= f.province === p ? 'selected' : '' %>><%= p %></option><% }) %>
+        </select>
+      </div>
+      <div class="field">
+        <label for="s-loc">Nearest town / district</label>
+        <input id="s-loc" name="location" required value="<%= f.location || '' %>" placeholder="e.g. Shurugwi (Boterekwa)">
+      </div>
+      <div class="field">
+        <label for="s-ha">Size (hectares)</label>
+        <input id="s-ha" name="area_ha" inputmode="decimal" required value="<%= f.area_ha || '' %>" placeholder="e.g. 150">
+      </div>
+      <div class="field">
+        <label for="s-grade">Grade / assay results</label>
+        <input id="s-grade" name="grade" value="<%= f.grade || '' %>" placeholder="e.g. Au 3–5g/t or Cr 48%">
+      </div>
+    </div>
+
+    <h2 class="form-step"><span>2</span> Price &amp; mandate</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label for="s-price">Asking price (US$)</label>
+        <input id="s-price" name="price_usd" inputmode="numeric" value="<%= f.price_usd || '' %>" placeholder="Leave blank for “price on request”">
+      </div>
+      <div class="field">
+        <label for="s-mandate">You are the…</label>
+        <select id="s-mandate" name="mandate">
+          <option value="">Choose…</option>
+          <% const mandateLabels = { Owner: 'Registered owner', 'Direct Mandate': 'Direct mandate holder', 'New Mandate': 'New mandate holder', Agent: 'Agent / broker' }; %>
+          <% config.mandates.forEach(m => { %><option value="<%= m %>" <%= f.mandate === m ? 'selected' : '' %>><%= mandateLabels[m] || m %></option><% }) %>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="s-pnote">Price note <small class="muted">(optional, e.g. "Joint venture only" or "Outright sale")</small></label>
+      <input id="s-pnote" name="price_note" maxlength="40" value="<%= f.price_note || '' %>">
+    </div>
+    <label class="check"><input type="checkbox" name="negotiable" <%= f.negotiable === 'on' ? 'checked' : '' %>> Price is negotiable</label>
+    <label class="check"><input type="checkbox" name="price_per_block" <%= f.price_per_block === 'on' ? 'checked' : '' %>> Price is per 10ha block</label>
+
+    <h2 class="form-step"><span>3</span> Describe the property</h2>
+    <div class="field">
+      <label for="s-sum">One-line summary <small class="muted">(shown on search results)</small></label>
+      <input id="s-sum" name="summary" maxlength="220" value="<%= f.summary || '' %>" placeholder="e.g. Oxide ground next to a working heap leach, with power on site">
+    </div>
+    <div class="field">
+      <label for="s-desc">Full description</label>
+      <textarea id="s-desc" name="description" rows="8" required placeholder="Workings, shafts, trenches, access roads, water, power, neighbouring operations… Write it the way you'd explain it to a buyer on the phone."><%= f.description || '' %></textarea>
+    </div>
+    <div class="field">
+      <label for="s-infra">What's on site? <small class="muted">(one item per line)</small></label>
+      <textarea id="s-infra" name="infrastructure" rows="5" placeholder="2 underground shafts&#10;5-ton ball mill&#10;Electricity connected"><%= f.infrastructure || '' %></textarea>
+    </div>
+
+    <h2 class="form-step"><span>4</span> Paperwork</h2>
+    <fieldset class="field checks-grid">
+      <legend>Which documents can you show a buyer?</legend>
+      <% config.documentOptions.forEach(d => { %>
+        <label class="check"><input type="checkbox" name="documents" value="<%= d %>" <%= docs.includes(d) ? 'checked' : '' %>> <%= d %></label>
+      <% }) %>
+    </fieldset>
+    <div class="field">
+      <label for="s-paper">Anything else about the paperwork?</label>
+      <input id="s-paper" name="paperwork_note" value="<%= f.paperwork_note || '' %>" placeholder="e.g. Fully registered, 4 blocks, rates paid up to date">
+    </div>
+
+    <h2 class="form-step"><span>5</span> Photos</h2>
+    <% if (editing && (f.images || editing.images).length) { %>
+      <p class="small muted">Untick any photo you'd like to remove.</p>
+      <div class="keep-grid">
+        <% (f.images || editing.images).forEach(src => { %>
+          <label class="keep"><input type="checkbox" name="keep_images" value="<%= src %>" checked><img src="<%= src %>" alt=""></label>
+        <% }) %>
+      </div>
+    <% } %>
+    <div class="field">
+      <label class="drop" for="s-photos">
+        <input id="s-photos" type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple>
+        <strong>Add photos</strong>
+        <span>Up to 8 images (JPG, PNG or WebP, max 6MB each). Workings, shafts, samples and equipment all help. If you skip this we'll use representative photos until you add your own.</span>
+      </label>
+      <div class="preview-grid" data-preview></div>
+    </div>
+
+    <h2 class="form-step"><span>6</span> How should we reach you?</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label for="s-cname">Contact name</label>
+        <input id="s-cname" name="contact_name" value="<%= f.contact_name || user.name %>">
+      </div>
+      <div class="field">
+        <label for="s-cphone">Phone / WhatsApp</label>
+        <input id="s-cphone" name="contact_phone" value="<%= f.contact_phone || user.phone || '' %>" placeholder="+263…">
+      </div>
+    </div>
+    <p class="small muted">Your contact details are only seen by our team. Buyers contact us first and we introduce you once they're vetted.</p>
+
+    <% if (!editing) { %>
+    <label class="check agree"><input type="checkbox" name="agree" required> I confirm I'm the registered owner or hold a valid mandate to sell this property, that the information above is true to the best of my knowledge, and I accept the <a href="/terms" target="_blank">Terms &amp; Conditions</a>.</label>
+    <% } %>
+
+    <div class="btn-row">
+      <button class="btn"><%= editing ? 'Save changes' : 'Submit for review' %></button>
+      <a class="btn btn-ghost" href="<%= editing && user.role === 'admin' ? `/admin/listings/${editing.id}` : '/dashboard' %>">Cancel</a>
+    </div>
+  </form>
+  <aside class="sell-aside">
+    <%- include('partials/sell-tips') %>
+  </aside>
+  <% } %>
+</div>
+
+<%- include('partials/footer') %>

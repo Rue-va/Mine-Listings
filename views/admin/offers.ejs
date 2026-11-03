@@ -1,0 +1,31 @@
+<%- include('../partials/header') %>
+<%- include('nav') %>
+<div class="wrap admin">
+  <h1>Offers</h1>
+  <p class="muted">Accepting an offer marks the listing “Under offer” and tells the buyer on their dashboard. Mark it sold from the listing page once the deal closes.</p>
+  <% if (!rows.length) { %><p class="muted">No offers yet.</p><% } %>
+  <div class="enquiry-list">
+    <% rows.forEach(o => { %>
+      <article class="panel enquiry <%= o.status === 'pending' ? 'is-new' : '' %>">
+        <header>
+          <div>
+            <strong><%= fmtMoney(o.amount_usd) %></strong> <span class="muted">for</span> <a href="/admin/listings/<%= o.listing_id %>"><%= o.title %></a>
+            <span class="small muted">(asking <%= fmtPrice(o) %>)</span>
+            <div class="small"><%= o.name %> · <a href="mailto:<%= o.email %>"><%= o.email %></a><% if (o.phone || o.user_phone) { %> · <%= o.phone || o.user_phone %><% } %> · <%= o.funding %> · <%= fmtDate(o.created_at) %></div>
+          </div>
+          <span class="status status-<%= o.status %>"><%= o.status %></span>
+        </header>
+        <% if (o.message) { %><p class="enquiry-msg"><%= o.message %></p><% } %>
+        <% if (o.status === 'pending') { %>
+          <form action="/admin/offers/<%= o.id %>/decide" method="post" class="offer-decide">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <input name="admin_note" placeholder="Optional note to the buyer" aria-label="Note to buyer">
+            <button class="btn btn-small btn-approve" name="decision" value="accepted">Accept</button>
+            <button class="btn btn-small btn-decline" name="decision" value="declined">Decline</button>
+          </form>
+        <% } else if (o.admin_note) { %><p class="small muted">Note: <%= o.admin_note %></p><% } %>
+      </article>
+    <% }) %>
+  </div>
+</div>
+<%- include('../partials/footer') %>

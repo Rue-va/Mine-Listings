@@ -1,0 +1,51 @@
+<%- include('../partials/header') %>
+<%- include('nav') %>
+<div class="wrap admin">
+  <h1>Admin overview</h1>
+  <div class="stat-grid">
+    <a class="stat <%= stats.pending ? 'stat-alert' : '' %>" href="/admin/listings?status=pending"><strong><%= stats.pending %></strong><span>listings to review</span></a>
+    <a class="stat <%= stats.pendingOffers ? 'stat-alert' : '' %>" href="/admin/offers"><strong><%= stats.pendingOffers %></strong><span>offers waiting</span></a>
+    <a class="stat <%= stats.newEnquiries ? 'stat-alert' : '' %>" href="/admin/enquiries?status=new"><strong><%= stats.newEnquiries %></strong><span>new enquiries</span></a>
+    <a class="stat" href="/admin/listings?status=approved"><strong><%= stats.live %></strong><span>live listings</span></a>
+    <a class="stat" href="/admin/listings?status=sold"><strong><%= stats.sold %></strong><span>sold</span></a>
+    <a class="stat" href="/admin/users"><strong><%= stats.users %></strong><span>registered users</span></a>
+  </div>
+
+  <section class="admin-block">
+    <div class="section-head"><h2>Review queue</h2><a class="more" href="/admin/listings?status=pending">Open queue &rarr;</a></div>
+    <% if (!pending.length) { %><p class="muted">Nothing waiting for review.</p><% } else { %>
+      <div class="dash-list">
+        <% pending.forEach(l => { %>
+          <div class="dash-row">
+            <img src="<%= l.images[0] %>" alt="">
+            <div class="dash-row-main">
+              <a href="/admin/listings/<%= l.id %>"><strong><%= l.title %></strong></a>
+              <span class="small muted"><%= l.mineral %> · <%= l.province %> · <%= fmtPrice(l) %> · by <%= l.owner_name || 'unknown' %> · <%= fmtDate(l.created_at) %></span>
+            </div>
+            <div class="dash-row-side"><a class="btn btn-small" href="/admin/listings/<%= l.id %>">Review</a></div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </section>
+
+  <div class="grid-2">
+    <section class="admin-block">
+      <div class="section-head"><h2>Latest offers</h2><a class="more" href="/admin/offers">All &rarr;</a></div>
+      <% if (!offers.length) { %><p class="muted">No offers waiting.</p><% } else { %>
+        <ul class="plain-list">
+          <% offers.forEach(o => { %><li><strong><%= fmtMoney(o.amount_usd) %></strong> from <%= o.name %> for <em><%= o.title %></em> <span class="small muted">· <%= fmtDate(o.created_at) %></span></li><% }) %>
+        </ul>
+      <% } %>
+    </section>
+    <section class="admin-block">
+      <div class="section-head"><h2>New enquiries</h2><a class="more" href="/admin/enquiries">All &rarr;</a></div>
+      <% if (!enquiries.length) { %><p class="muted">Inbox zero.</p><% } else { %>
+        <ul class="plain-list">
+          <% enquiries.forEach(e => { %><li><strong><%= e.name %></strong> about <em><%= e.title || 'general' %></em><% if (e.kind === 'site_visit') { %> <span class="pill">site visit</span><% } %> <span class="small muted">· <%= fmtDate(e.created_at) %></span></li><% }) %>
+        </ul>
+      <% } %>
+    </section>
+  </div>
+</div>
+<%- include('../partials/footer') %>

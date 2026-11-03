@@ -1,0 +1,41 @@
+<%- include('../partials/header') %>
+<%- include('nav') %>
+<% const label = { pending: 'Pending', approved: 'Live', under_offer: 'Under offer', sold: 'Sold', declined: 'Declined', withdrawn: 'Withdrawn' }; %>
+<div class="wrap admin">
+  <h1>Listings</h1>
+  <nav class="tabs">
+    <a href="/admin/listings" class="<%= !status ? 'active' : '' %>">All</a>
+    <% statuses.forEach(s => { %><a href="/admin/listings?status=<%= s %>" class="<%= status === s ? 'active' : '' %>"><%= label[s] %> <span class="count"><%= counts[s] || 0 %></span></a><% }) %>
+  </nav>
+
+  <% if (!rows.length) { %>
+    <p class="muted"><%= status === 'pending' ? 'No listings waiting for review.' : 'Nothing here.' %></p>
+  <% } else { %>
+  <div class="table-wrap">
+  <table class="table">
+    <thead><tr><th></th><th>Listing</th><th>Seller</th><th>Price</th><th>Submitted</th><th>Activity</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      <% rows.forEach(l => { %>
+      <tr>
+        <td><img class="thumb" src="<%= l.images[0] %>" alt=""></td>
+        <td><a href="/admin/listings/<%= l.id %>"><strong><%= l.title %></strong></a><div class="small muted"><%= l.mineral %> · <%= l.province %><%= l.featured ? ' · ★ featured' : '' %></div></td>
+        <td><%= l.owner_name || '—' %><div class="small muted"><%= l.owner_email || '' %></div></td>
+        <td><%= fmtPrice(l) %></td>
+        <td><%= fmtDate(l.created_at) %></td>
+        <td class="small"><%= l.views %> views<br><%= l.enquiry_count %> enq · <%= l.offer_count %> offers</td>
+        <td><span class="status status-<%= l.status %>"><%= label[l.status] %></span></td>
+        <td>
+          <% if (l.status === 'pending') { %>
+            <a class="btn btn-small" href="/admin/listings/<%= l.id %>">Review</a>
+          <% } else { %>
+            <a class="btn btn-ghost btn-small" href="/admin/listings/<%= l.id %>">Open</a>
+          <% } %>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  </div>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

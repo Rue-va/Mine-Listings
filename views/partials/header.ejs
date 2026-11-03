@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= typeof title !== 'undefined' && title ? `${title} · ${config.siteName}` : `${config.siteName} · ${config.tagline}` %></title>
+  <meta name="description" content="<%= typeof description !== 'undefined' && description ? description : 'Buy and sell gold, chrome, lithium and other mines and mining claims in Zimbabwe. Every listing is checked by a person before it goes live.' %>">
+  <link rel="icon" href="/img/favicon-32.png?v=6" type="image/png" sizes="32x32">
+  <link rel="icon" href="/img/favicon-64.png?v=6" type="image/png" sizes="64x64">
+  <link rel="shortcut icon" href="/favicon.ico?v=6">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png?v=6">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="<%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>">
+<a class="skip" href="#main">Skip to content</a>
+<% const [brandName, ...brandTld] = config.siteName.split('.'); %>
+<div class="topbar">
+  <div class="wrap">
+    <div><span><%= config.officeAddress %></span><span class="hide-sm"><a href="mailto:<%= config.contactEmail %>"><%= config.contactEmail %></a></span><% if (config.contactPhone) { %><span class="hide-sm"><a href="tel:<%= config.contactPhone.replace(/\s/g, '') %>"><%= config.contactPhone %></a></span><% } %></div>
+    <div><a href="/sell">List your mine</a></div>
+  </div>
+</div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="/" aria-label="<%= config.siteName %> home">
+      <img class="brand-logo" src="/img/logo-miner.png" alt="" width="40" height="40"><span><%= brandName %><% if (brandTld.length) { %><span class="tld">.<%= brandTld.join('.') %></span><% } %></span>
+    </a>
+    <button class="nav-toggle" aria-expanded="false" aria-controls="site-nav">
+      <span class="sr-only">Menu</span><span></span><span></span><span></span>
+    </button>
+    <nav id="site-nav" class="site-nav">
+      <a href="/mines" class="<%= currentPath.startsWith('/mines') ? 'active' : '' %>">Browse mines</a>
+      <a href="/sell" class="<%= currentPath === '/sell' ? 'active' : '' %>">Sell a mine</a>
+      <a href="/how-it-works" class="<%= currentPath === '/how-it-works' ? 'active' : '' %>">How it works</a>
+      <a href="/contact" class="<%= currentPath === '/contact' ? 'active' : '' %>">Contact</a>
+      <span class="nav-sep"></span>
+      <% if (user) { %>
+        <% if (user.role === 'admin') { %><a href="/admin" class="nav-admin">Admin</a><% } %>
+        <a href="/dashboard" class="<%= currentPath === '/dashboard' ? 'active' : '' %>">My dashboard</a>
+        <form action="/logout" method="post" class="inline-form"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="link-btn">Sign out</button></form>
+      <% } else { %>
+        <a href="/login">Sign in</a>
+        <a href="/register" class="btn btn-small">Create account</a>
+      <% } %>
+    </nav>
+  </div>
+</header>
+<% if (flash) { %>
+  <div class="flash flash-<%= flash.type %>" role="status">
+    <div class="wrap"><%= flash.message %><button class="flash-close" aria-label="Dismiss">&times;</button></div>
+  </div>
+<% } %>
+<main id="main">

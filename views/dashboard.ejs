@@ -1,0 +1,92 @@
+<%- include('partials/header') %>
+<% const statusText = { pending: 'Waiting for review', approved: 'Live', declined: 'Not approved', under_offer: 'Under offer', sold: 'Sold', withdrawn: 'Withdrawn' }; %>
+
+<section class="page-head">
+  <div class="wrap">
+    <h1>My dashboard</h1>
+    <p class="muted">Signed in as <%= user.name %>. <a href="/account">Update your details</a></p>
+  </div>
+</section>
+
+<div class="wrap dash">
+  <section class="dash-block">
+    <div class="section-head">
+      <h2>Your listings</h2>
+      <a class="btn btn-small" href="/sell">+ List a mine</a>
+    </div>
+    <% if (!listings.length) { %>
+      <div class="empty small-empty"><p>You haven't listed anything yet. When you do, you'll be able to follow its review here.</p></div>
+    <% } else { %>
+      <div class="dash-list">
+        <% listings.forEach(l => { %>
+          <div class="dash-row" id="listing-<%= l.id %>">
+            <img src="<%= l.images[0] %>" alt="">
+            <div class="dash-row-main">
+              <a href="/mines/<%= l.slug %>"><strong><%= l.title %></strong></a>
+              <span class="muted small"><%= l.mineral %> · <%= l.province %> · <%= fmtPrice(l) %> · submitted <%= fmtDate(l.created_at) %></span>
+              <% if (l.status === 'declined' && l.admin_note) { %><p class="note note-error"><strong>Why it wasn't approved:</strong> <%= l.admin_note %></p>
+              <% } else if (l.admin_note && l.status !== 'pending') { %><p class="note"><strong>Note from our team:</strong> <%= l.admin_note %></p><% } %>
+              <% if (l.status === 'pending') { %><p class="note">We're reviewing this now. You'll see the decision here, usually within two working days.</p><% } %>
+            </div>
+            <div class="dash-row-side">
+              <span class="status status-<%= l.status %>"><%= statusText[l.status] || l.status %></span>
+              <% if (['approved','under_offer'].includes(l.status)) { %><span class="small muted"><%= l.views %> views</span><% } %>
+              <div class="btn-row">
+                <% if (!['sold','withdrawn'].includes(l.status)) { %>
+                  <a class="btn btn-ghost btn-small" href="/my/listings/<%= l.id %>/edit"><%= l.status === 'declined' ? 'Fix & resubmit' : 'Edit' %></a>
+                  <form action="/my/listings/<%= l.id %>/withdraw" method="post" data-confirm="Take this listing off the market?"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn btn-ghost btn-small">Withdraw</button></form>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </section>
+
+  <section class="dash-block">
+    <h2>Offers you've made</h2>
+    <% if (!offers.length) { %>
+      <div class="empty small-empty"><p>No offers yet. When you find the right property, you can make an offer straight from its page.</p></div>
+    <% } else { %>
+      <table class="table">
+        <thead><tr><th>Property</th><th>Your offer</th><th>Funding</th><th>Sent</th><th>Status</th></tr></thead>
+        <tbody>
+        <% offers.forEach(o => { %>
+          <tr>
+            <td><a href="/mines/<%= o.slug %>"><%= o.title %></a><% if (o.admin_note) { %><div class="small muted">“<%= o.admin_note %>”</div><% } %></td>
+            <td><%= fmtMoney(o.amount_usd) %></td>
+            <td><%= o.funding %></td>
+            <td><%= fmtDate(o.created_at) %></td>
+            <td><span class="status status-<%= o.status %>"><%= { pending: 'With the owner', accepted: 'Accepted', declined: 'Declined', withdrawn: 'Withdrawn' }[o.status] %></span></td>
+          </tr>
+        <% }) %>
+        </tbody>
+      </table>
+      <p class="small muted">Accepted means the owner wants to proceed. We'll contact you to arrange due diligence and the sale agreement.</p>
+    <% } %>
+  </section>
+
+  <section class="dash-block">
+    <h2>Saved mines</h2>
+    <% if (!saved.length) { %>
+      <div class="empty small-empty"><p>Tap “☆ Save” on any listing to keep it here.</p></div>
+    <% } else { %>
+      <div class="card-grid card-grid-3">
+        <% saved.forEach(l => { %><%- include('partials/card', { l }) %><% }) %>
+      </div>
+    <% } %>
+  </section>
+
+  <% if (enquiries.length) { %>
+  <section class="dash-block">
+    <h2>Your recent enquiries</h2>
+    <ul class="plain-list">
+      <% enquiries.forEach(e => { %>
+        <li><strong><%= e.title || 'General message' %></strong> <span class="muted small">· <%= fmtDate(e.created_at) %> · <%= e.status === 'new' ? 'Received' : e.status === 'replied' ? 'Replied' : 'Closed' %></span></li>
+      <% }) %>
+    </ul>
+  </section>
+  <% } %>
+</div>
+<%- include('partials/footer') %>

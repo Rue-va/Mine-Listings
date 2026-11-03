@@ -1,0 +1,112 @@
+<%- include('../partials/header') %>
+<%- include('nav') %>
+<% const label = { pending: 'Pending review', approved: 'Live', under_offer: 'Under offer', sold: 'Sold', declined: 'Declined', withdrawn: 'Withdrawn' }; %>
+<div class="wrap admin">
+  <nav class="crumbs"><a href="/admin/listings">Listings</a> / <span><%= l.title %></span></nav>
+  <div class="admin-head">
+    <div>
+      <h1><%= l.title %></h1>
+      <span class="status status-<%= l.status %>"><%= label[l.status] %></span>
+      <% if (l.featured) { %><span class="pill">★ Featured</span><% } %>
+      <span class="small muted">Ref #<%= l.id %> · submitted <%= fmtDate(l.created_at) %><%= l.reviewed_at ? ` · reviewed ${fmtDate(l.reviewed_at)}` : '' %></span>
+    </div>
+    <div class="btn-row">
+      <a class="btn btn-ghost btn-small" href="/mines/<%= l.slug %>" target="_blank">View on site ↗</a>
+      <a class="btn btn-ghost btn-small" href="/my/listings/<%= l.id %>/edit">Edit</a>
+    </div>
+  </div>
+
+  <div class="admin-layout">
+    <div>
+      <% if (l.status === 'pending' || l.status === 'declined') { %>
+      <section class="panel review-panel">
+        <h2><%= l.status === 'pending' ? 'Your decision' : 'Change decision' %></h2>
+        <p class="small muted">Check that the seller looks genuine, the paperwork claims make sense and the description is clear. Your note is shown to the seller on their dashboard.</p>
+        <form action="/admin/listings/<%= l.id %>/review" method="post" class="stack">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <label for="note">Note to seller <small class="muted">(required if declining)</small></label>
+          <textarea id="note" name="admin_note" rows="3" placeholder="e.g. Please upload a photo of the registration certificate and add assay results."><%= l.admin_note || '' %></textarea>
+          <div class="btn-row">
+            <button class="btn btn-approve" name="decision" value="approve">✓ Approve &amp; publish</button>
+            <% if (l.status === 'pending') { %><button class="btn btn-decline" name="decision" value="decline">✕ Decline</button><% } %>
+          </div>
+        </form>
+      </section>
+      <% } %>
+
+      <section class="panel">
+        <div class="admin-gallery">
+          <% l.images.forEach(src => { %><img src="<%= src %>" alt=""><% }) %>
+        </div>
+        <dl class="facts">
+          <div><dt>Mineral</dt><dd><%= l.mineral %></dd></div>
+          <div><dt>Location</dt><dd><%= l.location %>, <%= l.province %></dd></div>
+          <div><dt>Size</dt><dd><%= l.area_ha ? `${l.area_ha} ha` : '—' %></dd></div>
+          <div><dt>Grade</dt><dd><%= l.grade || '—' %></dd></div>
+          <div><dt>Price</dt><dd><%= fmtPrice(l) %><%= l.negotiable ? ' (neg)' : '' %></dd></div>
+          <div><dt>Stage</dt><dd><%= l.stage || '—' %></dd></div>
+          <div><dt>Mandate</dt><dd><%= l.mandate || '—' %></dd></div>
+          <div><dt>Documents</dt><dd><%= l.documents.join(', ') || 'None ticked' %></dd></div>
+        </dl>
+        <% if (l.summary) { %><p><strong><%= l.summary %></strong></p><% } %>
+        <div class="prose"><% l.description.split(/\n\s*\n/).forEach(p => { %><p><%= p %></p><% }) %></div>
+        <% if (l.infrastructure.length) { %><ul class="ticks"><% l.infrastructure.forEach(i => { %><li><%= i %></li><% }) %></ul><% } %>
+        <% if (l.paperwork_note) { %><p><em>Paperwork:</em> <%= l.paperwork_note %></p><% } %>
+      </section>
+    </div>
+
+    <aside>
+      <section class="panel">
+        <h3>Seller</h3>
+        <p><strong><%= l.owner_name || '—' %></strong><br>
+          <% if (l.owner_email) { %><a href="mailto:<%= l.owner_email %>"><%= l.owner_email %></a><br><% } %>
+          <%= l.owner_phone || '' %></p>
+        <% if (l.contact_name || l.contact_phone) { %><p class="small">Listing contact: <%= l.contact_name || '' %> <%= l.contact_phone || '' %></p><% } %>
+      </section>
+
+      <% if (!['pending','declined'].includes(l.status)) { %>
+      <section class="panel">
+        <h3>Market status</h3>
+        <form action="/admin/listings/<%= l.id %>/status" method="post" class="stack">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <select name="status" aria-label="Status">
+            <% [['approved','Live'],['under_offer','Under offer'],['sold','Sold'],['withdrawn','Withdrawn (hidden)']].forEach(([v, t]) => { %>
+              <option value="<%= v %>" <%= l.status === v ? 'selected' : '' %>><%= t %></option>
+            <% }) %>
+          </select>
+          <button class="btn btn-small">Update status</button>
+        </form>
+        <form action="/admin/listings/<%= l.id %>/feature" method="post">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <button class="btn btn-ghost btn-small"><%= l.featured ? 'Remove from featured' : '★ Feature on homepage' %></button>
+        </form>
+      </section>
+      <% } %>
+
+      <section class="panel">
+        <h3>Offers (<%= offers.length %>)</h3>
+        <% if (!offers.length) { %><p class="small muted">None yet.</p><% } %>
+        <% offers.forEach(o => { %>
+          <div class="mini-item"><strong><%= fmtMoney(o.amount_usd) %></strong> · <%= o.funding %> · <%= o.name %> <span class="status status-<%= o.status %>"><%= o.status %></span></div>
+        <% }) %>
+        <% if (offers.length) { %><a class="small" href="/admin/offers">Manage offers &rarr;</a><% } %>
+      </section>
+
+      <section class="panel">
+        <h3>Enquiries (<%= enquiries.length %>)</h3>
+        <% if (!enquiries.length) { %><p class="small muted">None yet.</p><% } %>
+        <% enquiries.slice(0, 8).forEach(e => { %>
+          <div class="mini-item"><strong><%= e.name %></strong> <a href="mailto:<%= e.email %>"><%= e.email %></a> <span class="small muted"><%= fmtDate(e.created_at) %></span></div>
+        <% }) %>
+      </section>
+
+      <section class="panel danger">
+        <form action="/admin/listings/<%= l.id %>/delete" method="post" data-confirm="Delete this listing permanently? This can't be undone.">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <button class="btn btn-decline btn-small">Delete listing</button>
+        </form>
+      </section>
+    </aside>
+  </div>
+</div>
+<%- include('../partials/footer') %>

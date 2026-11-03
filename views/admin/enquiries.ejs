@@ -1,0 +1,41 @@
+<%- include('../partials/header') %>
+<%- include('nav') %>
+<div class="wrap admin">
+  <h1>Enquiries</h1>
+  <nav class="tabs">
+    <a href="/admin/enquiries" class="<%= !status ? 'active' : '' %>">All</a>
+    <a href="/admin/enquiries?status=new" class="<%= status === 'new' ? 'active' : '' %>">New</a>
+    <a href="/admin/enquiries?status=replied" class="<%= status === 'replied' ? 'active' : '' %>">Replied</a>
+    <a href="/admin/enquiries?status=closed" class="<%= status === 'closed' ? 'active' : '' %>">Closed</a>
+  </nav>
+  <% if (!rows.length) { %><p class="muted">No enquiries here.</p><% } %>
+  <div class="enquiry-list">
+    <% rows.forEach(e => { %>
+      <article class="panel enquiry <%= e.status === 'new' ? 'is-new' : '' %>">
+        <header>
+          <div>
+            <strong><%= e.name %></strong>
+            <% if (e.kind === 'site_visit') { %><span class="pill pill-offer">Site visit request</span><% } else if (e.kind === 'general') { %><span class="pill">Contact form</span><% } %>
+            <div class="small muted">
+              <a href="mailto:<%= e.email %>?subject=<%= encodeURIComponent('Re: ' + (e.title || 'Your enquiry')) %>"><%= e.email %></a>
+              <% if (e.phone) { %> · <%= e.phone %><% } %> · <%= fmtDate(e.created_at) %>
+            </div>
+            <% if (e.title) { %><div class="small">Re: <a href="/mines/<%= e.slug %>" target="_blank"><%= e.title %></a></div><% } %>
+          </div>
+          <form action="/admin/enquiries/<%= e.id %>/status" method="post" class="inline-form">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <input type="hidden" name="back" value="/admin/enquiries<%= status ? '?status=' + status : '' %>">
+            <select name="status" data-autosubmit aria-label="Status">
+              <option value="new" <%= e.status === 'new' ? 'selected' : '' %>>New</option>
+              <option value="replied" <%= e.status === 'replied' ? 'selected' : '' %>>Replied</option>
+              <option value="closed" <%= e.status === 'closed' ? 'selected' : '' %>>Closed</option>
+            </select>
+            <noscript><button class="btn btn-small">Save</button></noscript>
+          </form>
+        </header>
+        <p class="enquiry-msg"><%= e.message %></p>
+      </article>
+    <% }) %>
+  </div>
+</div>
+<%- include('../partials/footer') %>

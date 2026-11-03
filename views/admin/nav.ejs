@@ -1,0 +1,12 @@
+<div class="admin-bar">
+  <div class="wrap admin-bar-inner">
+    <strong>Admin</strong>
+    <nav>
+      <a href="/admin" class="<%= currentPath === '/admin' || currentPath === '/admin/' ? 'active' : '' %>">Overview</a>
+      <a href="/admin/listings?status=pending" class="<%= currentPath.startsWith('/admin/listings') ? 'active' : '' %>">Listings</a>
+      <a href="/admin/offers" class="<%= currentPath === '/admin/offers' ? 'active' : '' %>">Offers</a>
+      <a href="/admin/enquiries" class="<%= currentPath === '/admin/enquiries' ? 'active' : '' %>">Enquiries</a>
+      <a href="/admin/users" class="<%= currentPath === '/admin/users' ? 'active' : '' %>">Users</a>
+    </nav>
+  </div>
+</div>

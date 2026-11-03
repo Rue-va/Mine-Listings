@@ -1,0 +1,14 @@
+<%- include('partials/header') %>
+<section class="page-head"><div class="wrap narrow"><h1>Image credits</h1>
+<p class="muted">Where a seller hasn't supplied their own photos, we use representative images of each mineral from Wikimedia Commons. Thank you to the photographers below.</p></div></section>
+<div class="wrap narrow">
+  <div class="credit-grid">
+    <% credits.forEach(c => { %>
+      <figure class="credit">
+        <img src="/img/minerals/<%= c.file %>" alt="<%= c.title %>" loading="lazy">
+        <figcaption><a href="<%= c.page %>" target="_blank" rel="noopener"><%= c.title.replace(/\.(jpe?g|png)$/i, '') %></a><br><span class="small muted"><%= c.artist || 'Unknown' %> · <%= c.license %></span></figcaption>
+      </figure>
+    <% }) %>
+  </div>
+</div>
+<%- include('partials/footer') %>

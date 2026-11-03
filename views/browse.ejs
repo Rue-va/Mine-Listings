@@ -1,0 +1,104 @@
+<%- include('partials/header') %>
+
+<section class="page-banner" style="--banner: url('/img/miners-underground.jpg')">
+  <div class="wrap">
+    <nav class="crumbs"><a href="/">Home</a> / <span>Mines for sale</span></nav>
+    <h1><%= selectedMinerals.length === 1 ? `${selectedMinerals[0]} mines & claims for sale` : 'Mines & claims for sale' %></h1>
+    <p><%= total %> propert<%= total === 1 ? 'y' : 'ies' %> available across Zimbabwe</p>
+  </div>
+</section>
+
+<div class="wrap browse">
+  <aside class="filters">
+    <button type="button" class="btn btn-ghost filters-toggle" aria-expanded="false" aria-controls="filter-form">Filter results</button>
+    <form id="filter-form" action="/mines" method="get">
+      <div class="field">
+        <label for="f-q">Keyword</label>
+        <input id="f-q" type="search" name="q" value="<%= query.q || '' %>" placeholder="Town, mineral, feature…">
+      </div>
+      <fieldset class="field">
+        <legend>Mineral</legend>
+        <% config.minerals.filter(m => mineralCounts[m]).forEach(m => { %>
+          <label class="check"><input type="checkbox" name="mineral" value="<%= m %>" <%= selectedMinerals.includes(m) ? 'checked' : '' %>> <%= m %> <span class="count"><%= mineralCounts[m] %></span></label>
+        <% }) %>
+      </fieldset>
+      <div class="field">
+        <label for="f-p">Province</label>
+        <select id="f-p" name="province">
+          <option value="">All provinces</option>
+          <% config.provinces.forEach(p => { %><option <%= query.province === p ? 'selected' : '' %>><%= p %></option><% }) %>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-s">Stage</label>
+        <select id="f-s" name="stage">
+          <option value="">Any stage</option>
+          <% config.stages.forEach(s => { %><option <%= query.stage === s ? 'selected' : '' %>><%= s %></option><% }) %>
+        </select>
+      </div>
+      <div class="field">
+        <span class="label">Price (US$)</span>
+        <div class="row-2">
+          <input type="number" name="min_price" min="0" step="1000" placeholder="Min" value="<%= query.min_price || '' %>" aria-label="Minimum price">
+          <input type="number" name="max_price" min="0" step="1000" placeholder="Max" value="<%= query.max_price || '' %>" aria-label="Maximum price">
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-ha">Minimum size (ha)</label>
+        <input id="f-ha" type="number" name="min_ha" min="0" value="<%= query.min_ha || '' %>" placeholder="e.g. 50">
+      </div>
+      <label class="check"><input type="checkbox" name="geo" value="1" <%= query.geo === '1' ? 'checked' : '' %>> Has a geological report</label>
+      <label class="check"><input type="checkbox" name="hide_sold" value="1" <%= query.hide_sold === '1' ? 'checked' : '' %>> Hide sold properties</label>
+      <input type="hidden" name="sort" value="<%= sort %>">
+      <button class="btn btn-block">Show results</button>
+      <a class="reset" href="/mines">Clear all filters</a>
+    </form>
+    <div class="panel help-card">
+      <strong>Looking for something specific?</strong>
+      <p>Tell us the mineral, area and budget. We often hear about properties before they're listed, and we'll let you know.</p>
+      <a class="btn btn-ghost btn-small btn-block" href="/contact">Tell us what you need</a>
+    </div>
+  </aside>
+
+  <section class="results">
+    <div class="results-bar">
+      <form action="/mines" method="get" class="sort-form">
+        <% for (const [k, v] of Object.entries(query)) { if (k === 'sort' || k === 'page') continue; [].concat(v).forEach(x => { %>
+          <input type="hidden" name="<%= k %>" value="<%= x %>">
+        <% }) } %>
+        <label for="sort">Sort by</label>
+        <select id="sort" name="sort" data-autosubmit>
+          <option value="newest" <%= sort === 'newest' ? 'selected' : '' %>>Newest first</option>
+          <option value="price_asc" <%= sort === 'price_asc' ? 'selected' : '' %>>Price: low to high</option>
+          <option value="price_desc" <%= sort === 'price_desc' ? 'selected' : '' %>>Price: high to low</option>
+          <option value="size_desc" <%= sort === 'size_desc' ? 'selected' : '' %>>Size: largest first</option>
+          <option value="size_asc" <%= sort === 'size_asc' ? 'selected' : '' %>>Size: smallest first</option>
+        </select>
+        <noscript><button class="btn btn-small">Sort</button></noscript>
+      </form>
+    </div>
+
+    <% if (!listings.length) { %>
+      <div class="empty">
+        <h3>Nothing matches that just yet.</h3>
+        <p>Try widening your filters, or <a href="/contact">tell us what you're looking for</a>. New mandates come in every week and we're happy to keep an eye out for you.</p>
+      </div>
+    <% } else { %>
+      <div class="card-grid card-grid-3">
+        <% listings.forEach(l => { %><%- include('partials/card', { l }) %><% }) %>
+      </div>
+    <% } %>
+
+    <% if (pages > 1) { %>
+      <nav class="pager" aria-label="Pages">
+        <% if (page > 1) { %><a href="<%= pageUrl(page - 1) %>">&larr; Previous</a><% } %>
+        <% for (let p = 1; p <= pages; p++) { %>
+          <a href="<%= pageUrl(p) %>" class="<%= p === page ? 'current' : '' %>" <%= p === page ? 'aria-current="page"' : '' %>><%= p %></a>
+        <% } %>
+        <% if (page < pages) { %><a href="<%= pageUrl(page + 1) %>">Next &rarr;</a><% } %>
+      </nav>
+    <% } %>
+  </section>
+</div>
+
+<%- include('partials/footer') %>

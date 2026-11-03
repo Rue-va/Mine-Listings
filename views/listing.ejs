@@ -1,0 +1,176 @@
+<%- include('partials/header') %>
+<% const isOwner = user && user.id === listing.owner_id; const isAdmin = user && user.role === 'admin'; %>
+
+<div class="wrap listing-page">
+  <nav class="crumbs"><a href="/">Home</a> / <a href="/mines">Mines for sale</a> / <a href="/mines?mineral=<%= encodeURIComponent(listing.mineral) %>"><%= listing.mineral %></a> / <span><%= listing.title %></span></nav>
+
+  <% if (listing.status === 'pending') { %>
+    <div class="notice notice-info">This listing is <strong>waiting for review</strong>. Only you<%= isAdmin ? ' (admin)' : '' %> can see it right now.<% if (isAdmin) { %> <a href="/admin/listings/<%= listing.id %>">Review it &rarr;</a><% } %></div>
+  <% } else if (listing.status === 'declined') { %>
+    <div class="notice notice-error">This listing wasn't approved.<% if (listing.admin_note) { %> Our note: “<%= listing.admin_note %>”<% } %> <% if (isOwner) { %><a href="/my/listings/<%= listing.id %>/edit">Edit and resubmit &rarr;</a><% } %></div>
+  <% } else if (listing.status === 'withdrawn') { %>
+    <div class="notice notice-info">This listing has been withdrawn and isn't visible to the public.</div>
+  <% } %>
+
+  <header class="listing-head">
+    <div>
+      <span class="tag tag-<%= mineralSlug(listing.mineral) %> tag-static"><%= listing.mineral %></span>
+      <% if (listing.status === 'under_offer') { %><span class="pill pill-offer">Under offer</span><% } %>
+      <% if (listing.status === 'sold') { %><span class="pill pill-sold">Sold</span><% } %>
+      <% if (listing.mandate) { %><span class="pill"><%= listing.mandate %></span><% } %>
+      <h1><%= listing.title %></h1>
+      <p class="card-loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/></svg><%= listing.location %>, <%= listing.province %> Province, Zimbabwe</p>
+    </div>
+    <div class="head-actions">
+      <% if (user) { %>
+        <form action="/mines/<%= listing.slug %>/save" method="post"><input type="hidden" name="_csrf" value="<%= csrf %>">
+          <button class="btn btn-ghost btn-small"><%= saved ? '★ Saved' : '☆ Save' %></button></form>
+      <% } else { %>
+        <a class="btn btn-ghost btn-small" href="/login?next=<%= encodeURIComponent('/mines/' + listing.slug) %>">☆ Save</a>
+      <% } %>
+      <button type="button" class="btn btn-ghost btn-small" data-share data-title="<%= listing.title %>">Share</button>
+      <% if (isAdmin) { %><a class="btn btn-ghost btn-small" href="/admin/listings/<%= listing.id %>">Manage</a><% } else if (isOwner) { %><a class="btn btn-ghost btn-small" href="/my/listings/<%= listing.id %>/edit">Edit</a><% } %>
+    </div>
+  </header>
+
+  <div class="gallery" data-gallery>
+    <figure class="gallery-main">
+      <img src="<%= listing.images[0] %>" alt="<%= listing.mineral %> mining photo for <%= listing.title %>" data-gallery-main>
+    </figure>
+    <% if (listing.images.length > 1) { %>
+    <div class="gallery-thumbs">
+      <% listing.images.forEach((src, i) => { %>
+        <button type="button" class="<%= i === 0 ? 'active' : '' %>" data-src="<%= src %>" aria-label="Show photo <%= i + 1 %>"><img src="<%= src %>" alt="" loading="lazy"></button>
+      <% }) %>
+    </div>
+    <% } %>
+    <% if (listing.images.every(src => src.startsWith('/img/minerals/'))) { %>
+      <p class="gallery-note">Representative photos of <%= listing.mineral.toLowerCase() %> mining. Site photos are shared on request.</p>
+    <% } %>
+  </div>
+
+  <div class="listing-layout">
+    <div class="listing-main">
+      <dl class="facts">
+        <div><dt>Asking price</dt><dd><%= fmtPrice(listing) %><%= listing.negotiable ? ' · negotiable' : '' %></dd></div>
+        <div><dt>Size</dt><dd><%= listing.area_ha ? `${Number(listing.area_ha).toLocaleString('en-US')} hectares` : 'Not stated' %></dd></div>
+        <div><dt>Grade / assays</dt><dd><%= listing.grade || 'Not stated' %></dd></div>
+        <div><dt>Stage</dt><dd><%= listing.stage || 'Not stated' %></dd></div>
+        <div><dt>Province</dt><dd><%= listing.province %></dd></div>
+        <div><dt>Listed</dt><dd><%= fmtDate(listing.created_at) %></dd></div>
+      </dl>
+
+      <section class="prose">
+        <h2>About this property</h2>
+        <% listing.description.split(/\n\s*\n/).forEach(p => { %><p><%= p %></p><% }) %>
+      </section>
+
+      <% if (listing.infrastructure.length) { %>
+      <section>
+        <h2>On site</h2>
+        <ul class="ticks">
+          <% listing.infrastructure.forEach(i => { %><li><%= i %></li><% }) %>
+        </ul>
+      </section>
+      <% } %>
+
+      <section>
+        <h2>Paperwork</h2>
+        <% if (listing.paperwork_note) { %><p><%= listing.paperwork_note %></p><% } %>
+        <ul class="docs">
+          <% config.documentOptions.forEach(d => { const has = listing.documents.includes(d); %>
+            <li class="<%= has ? 'has' : 'missing' %>"><span aria-hidden="true"><%= has ? '✓' : '–' %></span> <%= d %> <em><%= has ? 'available' : 'not provided' %></em></li>
+          <% }) %>
+        </ul>
+        <p class="small muted">Documents are shared with serious buyers once we've spoken. Please verify everything independently with the Ministry of Mines and Mining Development before you pay anything.</p>
+      </section>
+    </div>
+
+    <aside class="listing-side">
+      <div class="panel price-panel" id="buy">
+        <span class="label">Asking price</span>
+        <div class="big-price"><%= fmtPrice(listing) %></div>
+        <% if (listing.negotiable) { %><span class="neg">Open to negotiation</span><% } %>
+
+        <% if (listing.status === 'sold') { %>
+          <p class="muted">This property has been sold. <a href="/mines?mineral=<%= encodeURIComponent(listing.mineral) %>">See similar <%= listing.mineral.toLowerCase() %> listings</a>.</p>
+        <% } else if (listing.status === 'under_offer') { %>
+          <p class="muted">An offer has been accepted and the sale is in progress. You can still enquire in case it falls through.</p>
+        <% } else if (listing.status !== 'approved') { %>
+          <p class="muted">Offers open once the listing is approved.</p>
+        <% } else if (myOffer && myOffer.status === 'pending') { %>
+          <div class="notice notice-info">You offered <strong><%= fmtMoney(myOffer.amount_usd) %></strong> on <%= fmtDate(myOffer.created_at) %>. We're discussing it with the owner.</div>
+        <% } else if (!user) { %>
+          <p>Ready to buy? Create a free account to put in an offer. It takes less than a minute.</p>
+          <a class="btn btn-block" href="/login?next=<%= encodeURIComponent('/mines/' + listing.slug + '#buy') %>">Sign in to make an offer</a>
+        <% } else if (isOwner) { %>
+          <p class="muted">This is your listing. Offers from buyers will appear in your dashboard once our team has screened them.</p>
+        <% } else { %>
+          <details class="offer-box" <%= myOffer ? '' : 'open' %>>
+            <summary>Buy or make an offer</summary>
+            <form action="/mines/<%= listing.slug %>/offer" method="post" class="stack">
+              <input type="hidden" name="_csrf" value="<%= csrf %>">
+              <div class="field">
+                <label for="o-amt">Your offer (US$)</label>
+                <input id="o-amt" name="amount" inputmode="numeric" required value="<%= listing.price_usd || '' %>">
+                <% if (listing.price_label) { %><small class="muted">Asking price is <%= listing.price_label %>. Tell us how many blocks you want in the note below.</small><% } %>
+              </div>
+              <div class="field">
+                <label for="o-fund">How will you pay?</label>
+                <select id="o-fund" name="funding" required>
+                  <option value="">Choose…</option>
+                  <option>Cash</option><option>Financed</option><option>Joint venture</option><option>Tribute / lease</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="o-ph">Phone / WhatsApp</label>
+                <input id="o-ph" name="phone" value="<%= user.phone || '' %>" placeholder="+263…">
+              </div>
+              <div class="field">
+                <label for="o-msg">Anything the owner should know?</label>
+                <textarea id="o-msg" name="message" rows="3" placeholder="e.g. timeline, conditions, number of blocks"></textarea>
+              </div>
+              <label class="check small"><input type="checkbox" name="agree" required> I understand this offer is subject to a site visit, due diligence and a signed sale agreement, and I accept the <a href="/terms" target="_blank">Terms</a>.</label>
+              <button class="btn btn-block">Send my offer</button>
+              <p class="small muted">No money changes hands on this website. Payments are only ever made under a signed agreement, through a lawyer or escrow.</p>
+            </form>
+          </details>
+          <% if (myOffer && myOffer.status !== 'pending') { %><p class="small muted">Your last offer was <%= myOffer.status %>.</p><% } %>
+        <% } %>
+      </div>
+
+      <div class="panel" id="enquire">
+        <h3>Ask about this mine</h3>
+        <p class="small muted">A real person reads every message, usually within one working day.</p>
+        <form action="/mines/<%= listing.slug %>/enquire" method="post" class="stack">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <div class="hp" aria-hidden="true"><label>Leave this empty <input name="website" tabindex="-1" autocomplete="off"></label></div>
+          <div class="seg">
+            <label><input type="radio" name="kind" value="enquiry" checked> General question</label>
+            <label><input type="radio" name="kind" value="site_visit"> Book a site visit</label>
+          </div>
+          <input name="name" placeholder="Your name" required value="<%= user ? user.name : '' %>" aria-label="Your name">
+          <input name="email" type="email" placeholder="Email address" required value="<%= user ? user.email : '' %>" aria-label="Email">
+          <input name="phone" placeholder="Phone / WhatsApp (optional)" value="<%= user && user.phone ? user.phone : '' %>" aria-label="Phone">
+          <textarea name="message" rows="4" required aria-label="Message">Hi, I'm interested in the <%= listing.title %>. Could you send me more details?</textarea>
+          <button class="btn btn-block btn-dark">Send enquiry</button>
+        </form>
+        <% if (config.whatsapp) { %>
+          <a class="btn btn-ghost btn-block wa-btn" target="_blank" rel="noopener" href="https://wa.me/<%= config.whatsapp %>?text=<%= encodeURIComponent(`Hi, I'm interested in the ${listing.title} (ref #${listing.id}) on ${config.siteName}.`) %>">Chat on WhatsApp</a>
+        <% } %>
+        <p class="small muted ref">Listing reference #<%= listing.id %></p>
+      </div>
+    </aside>
+  </div>
+
+  <% if (similar.length) { %>
+  <section class="section">
+    <div class="section-head"><h2>Similar <%= listing.mineral.toLowerCase() %> properties</h2></div>
+    <div class="card-grid card-grid-3">
+      <% similar.forEach(l => { %><%- include('partials/card', { l }) %><% }) %>
+    </div>
+  </section>
+  <% } %>
+</div>
+
+<%- include('partials/footer') %>

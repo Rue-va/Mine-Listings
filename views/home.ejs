@@ -1,0 +1,98 @@
+<%- include('partials/header') %>
+
+<section class="hero" style="--hero: url('/img/minerals/gold-1.jpg')">
+  <div class="wrap">
+    <h1>Mines and mining claims for sale in Zimbabwe</h1>
+    <p class="lede">Gold, chrome, lithium, copper and antimony properties from owners and mandate holders. Each listing is reviewed by our Harare office before it goes up.</p>
+    <form class="hero-search" action="/mines" method="get" role="search">
+      <label class="sr-only" for="hs-q">Keyword</label>
+      <input id="hs-q" name="q" type="search" placeholder="Town, district or keyword">
+      <label class="sr-only" for="hs-m">Mineral</label>
+      <select id="hs-m" name="mineral">
+        <option value="">All minerals</option>
+        <% config.minerals.forEach(m => { %><option><%= m %></option><% }) %>
+      </select>
+      <label class="sr-only" for="hs-p">Province</label>
+      <select id="hs-p" name="province">
+        <option value="">All provinces</option>
+        <% config.provinces.forEach(p => { %><option><%= p %></option><% }) %>
+      </select>
+      <button class="btn">Search</button>
+    </form>
+  </div>
+  <div class="hero-stats">
+    <div class="wrap">
+      <div><strong><%= stats.listings %></strong><span>properties listed</span></div>
+      <div><strong><%= Math.round(stats.hectares).toLocaleString('en-US') %> ha</strong><span>total ground</span></div>
+      <div><strong><%= stats.provinces %></strong><span>provinces</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap section">
+  <div class="section-head">
+    <h2>Browse by mineral</h2>
+    <a href="/mines" class="more">All listings &rarr;</a>
+  </div>
+  <div class="mineral-grid">
+    <% const pics = { Gold: 'gold-1', Chrome: 'chrome-2', Lithium: 'lithium-3', Copper: 'copper-2', Antimony: 'antimony-1', Tin: 'tin-2', Quartz: 'quartz-1' }; %>
+    <% counts.forEach(c => { %>
+      <a class="mineral-tile" href="/minerals/<%= mineralSlug(c.mineral) %>" style="--img: url('/img/minerals/<%= pics[c.mineral] || 'hero-1' %>.jpg')">
+        <span><span class="mineral-name"><%= c.mineral %></span><span class="mineral-count"><%= c.n %> listing<%= c.n === 1 ? '' : 's' %></span></span>
+      </a>
+    <% }) %>
+  </div>
+</section>
+
+<% if (featured.length) { %>
+<section class="wrap section">
+  <div class="section-head">
+    <h2>Featured properties</h2>
+    <a href="/mines" class="more">View all &rarr;</a>
+  </div>
+  <div class="card-grid">
+    <% featured.forEach(l => { %><%- include('partials/card', { l }) %><% }) %>
+  </div>
+</section>
+<% } %>
+
+<% if (latest.length) { %>
+<section class="wrap section">
+  <div class="section-head">
+    <h2>Recently added</h2>
+    <a href="/mines?sort=newest" class="more">Newest first &rarr;</a>
+  </div>
+  <div class="card-grid">
+    <% latest.forEach(l => { %><%- include('partials/card', { l }) %><% }) %>
+  </div>
+</section>
+<% } %>
+
+<section class="band">
+  <div class="wrap two-col">
+    <div>
+      <h2>Buying a mine through us</h2>
+      <p>Most of these properties come to us from the owner or someone holding a direct mandate. Before a listing goes up we ask for the registration details and whatever assays or reports exist. If something like a geological report or an EIA hasn't been done, the listing says so.</p>
+      <p>When you find something you like, we arrange the site visit and sampling and set up a meeting with the owner. Offers come through this site, but money only changes hands under a signed sale agreement.</p>
+      <a class="btn btn-ghost" href="/how-it-works">How it works</a>
+    </div>
+    <ol class="steps">
+      <li><strong>Search and shortlist</strong><span>Filter by mineral, province, size and price. Save listings to your account.</span></li>
+      <li><strong>Send an enquiry</strong><span>Ask a question or request a site visit. We normally reply within one working day.</span></li>
+      <li><strong>Visit and sample</strong><span>We arrange access. Take your own samples to the lab of your choice.</span></li>
+      <li><strong>Make an offer</strong><span>Submit an offer on the listing page and we take it to the owner.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="wrap section">
+  <div class="cta">
+    <div>
+      <h2>Selling a mine or claim?</h2>
+      <p>Send us the details. We review every submission and put approved listings in front of buyers who are ready to visit.</p>
+    </div>
+    <a class="btn btn-light" href="/sell">List your mine</a>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

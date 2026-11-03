@@ -1,0 +1,32 @@
+<%- include('partials/header') %>
+<section class="page-banner" style="--banner: url('/img/coal-mine-aerial.jpg')">
+  <div class="wrap">
+    <nav class="crumbs"><a href="/">Home</a> / <span>Contact</span></nav>
+    <h1>Get in touch</h1>
+    <p>Questions about a listing or selling? We usually reply within one working day.</p>
+  </div>
+</section>
+<div class="wrap two-col contact">
+  <form action="/contact" method="post" class="panel stack">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <div class="hp" aria-hidden="true"><label>Leave this empty <input name="website" tabindex="-1" autocomplete="off"></label></div>
+    <div class="field"><label for="c-name">Your name</label><input id="c-name" name="name" required value="<%= user ? user.name : '' %>"></div>
+    <div class="field"><label for="c-email">Email</label><input id="c-email" type="email" name="email" required value="<%= user ? user.email : '' %>"></div>
+    <div class="field"><label for="c-phone">Phone / WhatsApp <small class="muted">(optional)</small></label><input id="c-phone" name="phone" value="<%= user && user.phone ? user.phone : '' %>"></div>
+    <div class="field"><label for="c-msg">How can we help?</label><textarea id="c-msg" name="message" rows="6" required placeholder="e.g. I'm looking for 50–100ha of gold oxides in the Midlands with power nearby, budget around US$500k."></textarea></div>
+    <p class="small muted">By sending this you agree to our <a href="/privacy">Privacy Policy</a>. We'll only use your details to reply.</p>
+    <button class="btn">Send message</button>
+  </form>
+  <div class="contact-info">
+    <div class="panel">
+      <h3>Other ways to reach us</h3>
+      <p><strong>Email</strong><br><a href="mailto:<%= config.contactEmail %>"><%= config.contactEmail %></a></p>
+      <% if (config.contactPhone) { %><p><strong>Phone</strong><br><a href="tel:<%= config.contactPhone.replace(/\s/g, '') %>"><%= config.contactPhone %></a></p><% } %>
+      <% if (config.whatsapp) { %><p><strong>WhatsApp</strong><br><a href="https://wa.me/<%= config.whatsapp %>" target="_blank" rel="noopener">Chat with us</a></p><% } %>
+      <p><strong>Office</strong><br><%= config.officeAddress %></p>
+      <p class="small muted">Site visits are by appointment only.</p>
+    </div>
+    <img class="contact-photo" src="/img/mine-technician.jpg" alt="Smiling mine technician at work on heavy equipment" width="738" height="306">
+  </div>
+</div>
+<%- include('partials/footer') %>

@@ -1,0 +1,17 @@
+<%- include('partials/header') %>
+<div class="wrap auth">
+  <div class="panel auth-card">
+    <h1>Welcome back</h1>
+    <p class="muted">Sign in to manage your listings, offers and saved mines.</p>
+    <form action="/login" method="post" class="stack">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <input type="hidden" name="next" value="<%= next %>">
+      <div class="field"><label for="l-email">Email</label><input id="l-email" type="email" name="email" required autocomplete="email" value="<%= email %>"></div>
+      <div class="field"><label for="l-pw">Password</label><input id="l-pw" type="password" name="password" required autocomplete="current-password"></div>
+      <button class="btn btn-block">Sign in</button>
+    </form>
+    <p class="auth-alt">New here? <a href="/register<%= next ? `?next=${encodeURIComponent(next)}` : '' %>">Create an account</a></p>
+    <p class="small muted">Forgotten your password? <a href="/contact">Get in touch</a> and we'll sort it out.</p>
+  </div>
+</div>
+<%- include('partials/footer') %>

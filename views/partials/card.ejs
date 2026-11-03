@@ -1,0 +1,22 @@
+<article class="card<%= l.status === 'sold' ? ' is-sold' : '' %>">
+  <a class="card-img" href="/mines/<%= l.slug %>">
+    <img src="<%= l.images[0] %>" alt="<%= l.mineral %> at <%= l.location %>" loading="lazy">
+    <span class="tag"><%= l.mineral %></span>
+    <% if (l.status === 'under_offer') { %><span class="ribbon ribbon-offer">Under offer</span>
+    <% } else if (l.status === 'sold') { %><span class="ribbon ribbon-sold">Sold</span>
+    <% } else if (l.featured) { %><span class="ribbon">Featured</span><% } %>
+  </a>
+  <div class="card-body">
+    <div class="card-price-row">
+      <span class="price"><%= fmtPrice(l) %></span>
+      <% if (l.negotiable && l.price_usd != null) { %><span class="neg">Negotiable</span><% } %>
+    </div>
+    <h3><a href="/mines/<%= l.slug %>"><%= l.title %></a></h3>
+    <p class="card-loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/></svg><%= l.location %>, <%= l.province %></p>
+    <ul class="card-facts">
+      <% if (l.area_ha) { %><li><%= Number(l.area_ha).toLocaleString('en-US') %> ha</li><% } %>
+      <% if (l.grade) { %><li><%= l.grade %></li><% } %>
+      <% if (l.stage) { %><li><%= l.stage %></li><% } %>
+    </ul>
+  </div>
+</article>

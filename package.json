@@ -1,0 +1,22 @@
+{
+  "name": "mine-exchange",
+  "version": "1.0.0",
+  "description": "Marketplace for buying and selling mines and mining claims",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server.js"
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "ejs": "^7.0.2",
+    "express": "^4.22.3",
+    "multer": "^2.5.0"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "private": true
+}

@@ -1,0 +1,43 @@
+<%- include('../partials/header') %>
+<%# Template policy. Have it reviewed against the Cyber and Data Protection Act before launch. %>
+<section class="page-head"><div class="wrap narrow">
+  <h1>Privacy Policy</h1>
+  <p class="muted">Last updated: 2 November 2026</p>
+</div></section>
+<div class="wrap narrow prose legal">
+  <p class="callout">We collect what we need to put buyers and sellers in touch, and nothing more. We don't sell your data.</p>
+
+  <h2>What we collect</h2>
+  <ul>
+    <li><strong>Account details:</strong> your name, email address, phone/WhatsApp number and a securely hashed password.</li>
+    <li><strong>Listings:</strong> property details, documents and photos you upload, plus contact details for the listing.</li>
+    <li><strong>Enquiries and offers:</strong> your messages, offer amounts and how you intend to fund a purchase.</li>
+    <li><strong>Technical data:</strong> essential cookies (see our <a href="/cookies">Cookie Policy</a>) and standard server logs such as IP address and browser type, kept for security.</li>
+    <li><strong>Optional analytics:</strong> only if you allow analytics cookies.</li>
+  </ul>
+
+  <h2>How we use it</h2>
+  <ul>
+    <li>To run your account and show you your listings, offers and saved mines;</li>
+    <li>To review listings and check that sellers are genuine;</li>
+    <li>To pass your enquiries and offers to sellers and arrange site visits;</li>
+    <li>To prevent fraud and keep the Platform secure;</li>
+    <li>To meet our legal obligations.</li>
+  </ul>
+
+  <h2>Who we share it with</h2>
+  <p>When you make an enquiry or an offer, we share the relevant details with the seller or their mandate holder so they can respond. Sellers' contact details are not published. We introduce parties once a buyer has been screened. We use trusted service providers (such as hosting and email) who process data on our behalf, and we may disclose information where the law requires it. We never sell personal information.</p>
+
+  <h2>How long we keep it</h2>
+  <p>We keep account and listing information while your account is active and for up to five years afterwards, so we have a record of introductions and can deal with any disputes. You can ask us to delete your account sooner. We'll remove what we're not legally required to keep.</p>
+
+  <h2>Your rights</h2>
+  <p>Under the Cyber and Data Protection Act [Chapter 12:07] you have the right to know what we hold about you, to have it corrected, to object to certain uses, and to ask for it to be deleted. To make a request, email <a href="mailto:<%= config.contactEmail %>"><%= config.contactEmail %></a>. If you're not happy with our response, you can complain to the Postal and Telecommunications Regulatory Authority of Zimbabwe (POTRAZ), the data protection authority.</p>
+
+  <h2>Security</h2>
+  <p>Passwords are stored using strong one-way hashing, sessions use secure cookies, and access to the admin area is restricted to our team. No system is perfectly secure, so please use a strong, unique password.</p>
+
+  <h2>Contact</h2>
+  <p>Questions? Email <a href="mailto:<%= config.contactEmail %>"><%= config.contactEmail %></a>.</p>
+</div>
+<%- include('../partials/footer') %>
