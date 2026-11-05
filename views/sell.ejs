@@ -155,7 +155,7 @@
       </div>
       <div class="field">
         <label for="s-cphone">Phone / WhatsApp</label>
-        <input id="s-cphone" type="tel" name="contact_phone" <%= editing && user.role === 'admin' ? '' : 'required' %> value="<%= f.contact_phone || user.phone || '' %>" placeholder="+263…">
+        <input id="s-cphone" type="tel" name="contact_phone" <%= editing && user.role === 'admin' ? '' : 'required' %> value="<%= f.contact_phone || user.phone || '' %>" placeholder="0771234567 or +263771234567">
       </div>
     </div>
     <p class="small muted">Your contact details are only seen by our team. Buyers contact us first and we introduce you once they're vetted.</p>

@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const { Resolver } = require('dns').promises;
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const multer = require('multer');
@@ -158,8 +159,39 @@ function mineralSlug(m) {
 }
 
 const clean = (v, max = 200) => String(v ?? '').trim().slice(0, max);
-const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-const isPhone = (v) => /^\+?[\d\s()-]+$/.test(v) && /^\d{7,15}$/.test(v.replace(/\D/g, ''));
+// Keep isEmail and normalizePhone in step with the browser checks in public/js/main.js.
+const isEmail = (v) => v.length <= 254 && v.split('@')[0].length <= 64 && !v.includes('..')
+  && /^[a-z0-9](?:[a-z0-9._%+-]*[a-z0-9_%+-])?@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i.test(v);
+
+// Returns the number as +263771234567, or '' if it isn't valid. Zimbabwean numbers are 10 digits
+// locally (0771234567) and drop the 0 after +263. Other countries must start with + and the country code.
+function normalizePhone(v) {
+  if (!/^\+?\d[\d\s-]*$/.test(v)) return '';
+  const digits = v.replace(/\D/g, '');
+  const zw = (!v.startsWith('+') && digits.match(/^0([1-9]\d{8})$/)) || digits.match(/^2630?([1-9]\d{8})$/);
+  if (zw) return `+263${zw[1]}`;
+  return v.startsWith('+') && !digits.startsWith('263') && /^[1-9]\d{7,14}$/.test(digits) ? `+${digits}` : '';
+}
+const PHONE_ERROR = 'Please enter a valid phone number: 10 digits for Zimbabwe (e.g. 0771234567), or + and the country code for other countries.';
+const EMAIL_ERROR = 'Please enter a real email address. We could not find a mail service for that one.';
+
+const dnsResolver = new Resolver({ timeout: 3000, tries: 1 });
+
+// A DNS outage on our side shouldn't stop people signing up, so only a definite "no" counts.
+async function domainTakesMail(email) {
+  try {
+    const records = await dnsResolver.resolveMx(email.split('@')[1]);
+    return records.some((r) => r.exchange && r.exchange !== '.');
+  } catch (err) {
+    return !['ENOTFOUND', 'ENODATA'].includes(err.code);
+  }
+}
+
+async function checkEmail(req, res, next) {
+  const email = clean(req.body.email, 150);
+  req.emailOk = isEmail(email) && await domainTakesMail(email);
+  next();
+}
 
 // ---------- public pages ----------
 
@@ -243,17 +275,21 @@ app.get('/mines/:slug', (req, res) => {
   res.render('listing', { title: listing.title, listing, similar, saved, myOffer, description: listing.summary });
 });
 
-app.post('/mines/:slug/enquire', (req, res) => {
+app.post('/mines/:slug/enquire', checkEmail, (req, res) => {
   const listing = loadListing(req, res);
   if (!listing) return res.status(404).render('404', { title: 'Listing not found' });
   const name = clean(req.body.name, 100);
   const email = clean(req.body.email, 150);
-  const phone = clean(req.body.phone, 40);
+  const phone = normalizePhone(clean(req.body.phone, 40));
   const message = clean(req.body.message, 3000);
   const kind = req.body.kind === 'site_visit' ? 'site_visit' : 'enquiry';
   if (req.body.website) return res.redirect(`/mines/${listing.slug}`); // honeypot: bots fill every field
-  if (!name || !isEmail(email) || !isPhone(phone) || !message) {
-    res.flash('error', 'Please add your name, a valid email address, a valid phone number and a short message.');
+  if (!name || !message) {
+    res.flash('error', 'Please add your name and a short message.');
+    return res.redirect(`/mines/${listing.slug}#enquire`);
+  }
+  if (!req.emailOk || !phone) {
+    res.flash('error', req.emailOk ? PHONE_ERROR : EMAIL_ERROR);
     return res.redirect(`/mines/${listing.slug}#enquire`);
   }
   db.prepare('INSERT INTO enquiries (listing_id, user_id, kind, name, email, phone, message) VALUES (?, ?, ?, ?, ?, ?, ?)')
@@ -271,9 +307,13 @@ app.post('/mines/:slug/offer', requireLogin, (req, res) => {
   }
   const amount = Math.round(Number(String(req.body.amount || '').replace(/[^\d.]/g, '')));
   const funding = ['Cash', 'Financed', 'Joint venture', 'Tribute / lease'].includes(req.body.funding) ? req.body.funding : null;
-  const phone = clean(req.body.phone, 40);
-  if (!amount || amount < 1000 || !funding || !isPhone(phone) || req.body.agree !== 'on') {
-    res.flash('error', 'Please enter your offer amount, choose how it will be funded, add a valid phone number and accept the terms.');
+  const phone = normalizePhone(clean(req.body.phone, 40));
+  if (!amount || amount < 1000 || !funding || req.body.agree !== 'on') {
+    res.flash('error', 'Please enter your offer amount, choose how it will be funded and accept the terms.');
+    return res.redirect(`/mines/${listing.slug}#buy`);
+  }
+  if (!phone) {
+    res.flash('error', PHONE_ERROR);
     return res.redirect(`/mines/${listing.slug}#buy`);
   }
   if (db.prepare(`SELECT 1 FROM offers WHERE user_id = ? AND listing_id = ? AND status = 'pending'`).get(req.user.id, listing.id)) {
@@ -297,7 +337,7 @@ app.post('/mines/:slug/save', requireLogin, (req, res) => {
 
 // ---------- selling ----------
 
-function listingFromForm(body, files) {
+function listingFromForm(body, files, phoneRequired) {
   const errors = [];
   const num = (v) => { const n = Number(String(v ?? '').replace(/[^\d.]/g, '')); return Number.isFinite(n) && n > 0 ? n : null; };
   const data = {
@@ -318,7 +358,7 @@ function listingFromForm(body, files) {
     documents: [].concat(body.documents || []).filter((d) => config.documentOptions.includes(d)),
     paperwork_note: clean(body.paperwork_note, 300) || null,
     contact_name: clean(body.contact_name, 100) || null,
-    contact_phone: clean(body.contact_phone, 40) || null,
+    contact_phone: normalizePhone(clean(body.contact_phone, 40)) || null,
     newImages: (files || []).map((f) => `/uploads/${f.filename}`),
   };
   if (!data.title) errors.push('Give your listing a title, e.g. "Kwekwe 50ha Gold Claim".');
@@ -327,6 +367,7 @@ function listingFromForm(body, files) {
   if (!data.location) errors.push('Tell buyers the nearest town or district.');
   if (!data.area_ha) errors.push('Enter the size in hectares.');
   if (data.description.length < 40) errors.push('Write a few sentences describing the property (at least 40 characters).');
+  if (!data.contact_phone && (phoneRequired || clean(body.contact_phone, 40))) errors.push(PHONE_ERROR);
   return { data, errors };
 }
 
@@ -361,8 +402,7 @@ app.get('/sell', (req, res) => {
 });
 
 app.post('/sell', requireLogin, handleUpload, verifyCsrf, (req, res) => {
-  const { data, errors } = listingFromForm(req.body, req.files);
-  if (!isPhone(data.contact_phone || '')) errors.push('Enter a valid phone number so we can reach you.');
+  const { data, errors } = listingFromForm(req.body, req.files, true);
   if (req.body.agree !== 'on') errors.push('Please confirm you have the right to sell and accept the terms.');
   if (errors.length) {
     removeUploads(req.files);
@@ -398,9 +438,8 @@ app.get('/my/listings/:id/edit', requireLogin, (req, res) => {
 app.post('/my/listings/:id/edit', requireLogin, handleUpload, verifyCsrf, (req, res) => {
   const l = ownedListing(req);
   if (!l) { removeUploads(req.files); return res.status(404).render('404', { title: 'Listing not found' }); }
-  const { data, errors } = listingFromForm(req.body, req.files);
   // Launch listings have no contact number, so admins can still edit them.
-  if (req.user.role !== 'admin' && !isPhone(data.contact_phone || '')) errors.push('Enter a valid phone number so we can reach you.');
+  const { data, errors } = listingFromForm(req.body, req.files, req.user.role !== 'admin');
   if (errors.length) {
     removeUploads(req.files);
     return res.status(400).render('sell', { title: `Edit ${l.title}`, form: { ...req.body, documents: data.documents, images: l.images }, errors, editing: l });
@@ -468,19 +507,20 @@ app.get('/register', (req, res) => {
   res.render('register', { title: 'Create an account', next: safeNext(req.query.next) || '', form: {}, errors: [] });
 });
 
-app.post('/register', (req, res) => {
+app.post('/register', checkEmail, (req, res) => {
   const form = { name: clean(req.body.name, 100), email: clean(req.body.email, 150), phone: clean(req.body.phone, 40) };
   const password = String(req.body.password || '');
   const next = safeNext(req.body.next);
   const errors = [];
   if (!form.name) errors.push('Please tell us your name.');
-  if (!isEmail(form.email)) errors.push('Please enter a valid email address.');
-  if (!isPhone(form.phone)) errors.push('Please enter a valid phone number.');
+  const phone = normalizePhone(form.phone);
+  if (!req.emailOk) errors.push(EMAIL_ERROR);
+  if (!phone) errors.push(PHONE_ERROR);
   if (password.length < 8) errors.push('Your password needs at least 8 characters.');
   if (req.body.agree !== 'on') errors.push('Please accept the Terms & Conditions and Privacy Policy.');
   if (!errors.length && db.prepare('SELECT 1 FROM users WHERE email = ?').get(form.email)) errors.push('There is already an account with that email. Try signing in instead.');
   if (errors.length) return res.status(400).render('register', { title: 'Create an account', next: next || '', form, errors });
-  const info = db.prepare('INSERT INTO users (name, email, phone, password_hash) VALUES (?, ?, ?, ?)').run(form.name, form.email, form.phone, hashPassword(password));
+  const info = db.prepare('INSERT INTO users (name, email, phone, password_hash) VALUES (?, ?, ?, ?)').run(form.name, form.email, phone, hashPassword(password));
   startSession(res, info.lastInsertRowid);
   res.flash('success', `Welcome aboard, ${form.name.split(' ')[0]}! Your account is ready.`);
   res.redirect(next || '/dashboard');
@@ -507,9 +547,10 @@ app.get('/account', requireLogin, (req, res) => res.render('account', { title: '
 app.post('/account', requireLogin, (req, res) => {
   const errors = [];
   const name = clean(req.body.name, 100);
-  const phone = clean(req.body.phone, 40);
+  const phoneInput = clean(req.body.phone, 40);
+  const phone = normalizePhone(phoneInput);
   if (!name) errors.push('Your name cannot be empty.');
-  if (req.user.role !== 'admin' && !isPhone(phone)) errors.push('Please enter a valid phone number.');
+  if (!phone && (phoneInput || req.user.role !== 'admin')) errors.push(PHONE_ERROR);
   const newPassword = String(req.body.new_password || '');
   if (newPassword) {
     const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user.id);
@@ -536,14 +577,18 @@ app.get('/cookies', (req, res) => res.render('legal/cookies', { title: 'Cookie P
 app.get('/image-credits', (req, res) => res.render('credits', { title: 'Image credits', credits: require('./public/img/minerals/credits.json') }));
 
 app.get('/contact', (req, res) => res.render('contact', { title: 'Contact us' }));
-app.post('/contact', (req, res) => {
+app.post('/contact', checkEmail, (req, res) => {
   const name = clean(req.body.name, 100);
   const email = clean(req.body.email, 150);
-  const phone = clean(req.body.phone, 40);
+  const phone = normalizePhone(clean(req.body.phone, 40));
   const message = clean(req.body.message, 3000);
   if (req.body.website) return res.redirect('/contact');
-  if (!name || !isEmail(email) || !isPhone(phone) || !message) {
-    res.flash('error', 'Please fill in your name, a valid email, a valid phone number and your message.');
+  if (!name || !message) {
+    res.flash('error', 'Please fill in your name and your message.');
+    return res.redirect('/contact');
+  }
+  if (!req.emailOk || !phone) {
+    res.flash('error', req.emailOk ? PHONE_ERROR : EMAIL_ERROR);
     return res.redirect('/contact');
   }
   db.prepare(`INSERT INTO enquiries (user_id, kind, name, email, phone, message) VALUES (?, 'general', ?, ?, ?, ?)`)

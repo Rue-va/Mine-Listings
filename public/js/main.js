@@ -33,6 +33,28 @@
     if (!window.confirm(f.dataset.confirm)) e.preventDefault();
   }));
 
+  // ---------- phone and email checks (the server repeats these in server.js) ----------
+
+  const phoneProblem = (v) => {
+    const digits = v.replace(/\D/g, '');
+    const plus = v.startsWith('+');
+    const valid = /^\+?\d[\d\s-]*$/.test(v) && ((!plus && /^0[1-9]\d{8}$/.test(digits)) || /^2630?[1-9]\d{8}$/.test(digits)
+      || (plus && !digits.startsWith('263') && /^[1-9]\d{7,14}$/.test(digits)));
+    return valid ? '' : 'Enter numbers only: 10 digits for Zimbabwe (e.g. 0771234567), or + and the country code for other countries.';
+  };
+  const emailProblem = (v) => {
+    const valid = v.length <= 254 && v.split('@')[0].length <= 64 && !v.includes('..')
+      && /^[a-z0-9](?:[a-z0-9._%+-]*[a-z0-9_%+-])?@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i.test(v);
+    return valid ? '' : 'Enter a full email address, e.g. name@gmail.com.';
+  };
+  const checkField = (el, problem) => {
+    const run = () => el.setCustomValidity(el.value.trim() ? problem(el.value.trim()) : '');
+    el.addEventListener('input', run);
+    run();
+  };
+  $$('input[type="tel"]').forEach((el) => checkField(el, phoneProblem));
+  $$('input[type="email"]:not(#l-email)').forEach((el) => checkField(el, emailProblem));
+
   // ---------- listing gallery ----------
 
   $$('[data-gallery]').forEach((g) => {
