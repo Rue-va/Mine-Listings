@@ -335,7 +335,15 @@ const LISTINGS = [
 ];
 
 function ensureAdmin() {
-  if (db.prepare("SELECT 1 FROM users WHERE role = 'admin'").get()) return;
+  const existing = db.prepare("SELECT id, email FROM users WHERE role = 'admin' ORDER BY id LIMIT 1").get();
+  if (existing) {
+    if (process.env.ADMIN_RESET_PASSWORD) {
+      db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(process.env.ADMIN_RESET_PASSWORD), existing.id);
+      db.prepare('DELETE FROM sessions WHERE user_id = ?').run(existing.id);
+      console.log(`\n  Admin password reset for ${existing.email}. Remove ADMIN_RESET_PASSWORD now.\n`);
+    }
+    return;
+  }
   const email = process.env.ADMIN_EMAIL || 'admin@example.com';
   const password = process.env.ADMIN_PASSWORD || crypto.randomBytes(9).toString('base64url');
   db.prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, 'admin')")

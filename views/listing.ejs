@@ -124,7 +124,7 @@
               </div>
               <div class="field">
                 <label for="o-ph">Phone / WhatsApp</label>
-                <input id="o-ph" name="phone" value="<%= user.phone || '' %>" placeholder="+263…">
+                <input id="o-ph" type="tel" name="phone" required value="<%= user.phone || '' %>" placeholder="+263…">
               </div>
               <div class="field">
                 <label for="o-msg">Anything the owner should know?</label>
@@ -151,7 +151,7 @@
           </div>
           <input name="name" placeholder="Your name" required value="<%= user ? user.name : '' %>" aria-label="Your name">
           <input name="email" type="email" placeholder="Email address" required value="<%= user ? user.email : '' %>" aria-label="Email">
-          <input name="phone" placeholder="Phone / WhatsApp (optional)" value="<%= user && user.phone ? user.phone : '' %>" aria-label="Phone">
+          <input name="phone" type="tel" placeholder="Phone / WhatsApp" required value="<%= user && user.phone ? user.phone : '' %>" aria-label="Phone">
           <textarea name="message" rows="4" required aria-label="Message">Hi, I'm interested in the <%= listing.title %>. Could you send me more details?</textarea>
           <button class="btn btn-block btn-dark">Send enquiry</button>
         </form>

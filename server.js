@@ -159,6 +159,7 @@ function mineralSlug(m) {
 
 const clean = (v, max = 200) => String(v ?? '').trim().slice(0, max);
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+const isPhone = (v) => /^\+?[\d\s()-]+$/.test(v) && /^\d{7,15}$/.test(v.replace(/\D/g, ''));
 
 // ---------- public pages ----------
 
@@ -251,8 +252,8 @@ app.post('/mines/:slug/enquire', (req, res) => {
   const message = clean(req.body.message, 3000);
   const kind = req.body.kind === 'site_visit' ? 'site_visit' : 'enquiry';
   if (req.body.website) return res.redirect(`/mines/${listing.slug}`); // honeypot: bots fill every field
-  if (!name || !isEmail(email) || !message) {
-    res.flash('error', 'Please add your name, a valid email address and a short message.');
+  if (!name || !isEmail(email) || !isPhone(phone) || !message) {
+    res.flash('error', 'Please add your name, a valid email address, a valid phone number and a short message.');
     return res.redirect(`/mines/${listing.slug}#enquire`);
   }
   db.prepare('INSERT INTO enquiries (listing_id, user_id, kind, name, email, phone, message) VALUES (?, ?, ?, ?, ?, ?, ?)')
@@ -270,8 +271,9 @@ app.post('/mines/:slug/offer', requireLogin, (req, res) => {
   }
   const amount = Math.round(Number(String(req.body.amount || '').replace(/[^\d.]/g, '')));
   const funding = ['Cash', 'Financed', 'Joint venture', 'Tribute / lease'].includes(req.body.funding) ? req.body.funding : null;
-  if (!amount || amount < 1000 || !funding || req.body.agree !== 'on') {
-    res.flash('error', 'Please enter your offer amount, choose how it will be funded and accept the terms.');
+  const phone = clean(req.body.phone, 40);
+  if (!amount || amount < 1000 || !funding || !isPhone(phone) || req.body.agree !== 'on') {
+    res.flash('error', 'Please enter your offer amount, choose how it will be funded, add a valid phone number and accept the terms.');
     return res.redirect(`/mines/${listing.slug}#buy`);
   }
   if (db.prepare(`SELECT 1 FROM offers WHERE user_id = ? AND listing_id = ? AND status = 'pending'`).get(req.user.id, listing.id)) {
@@ -279,7 +281,7 @@ app.post('/mines/:slug/offer', requireLogin, (req, res) => {
     return res.redirect(`/mines/${listing.slug}#buy`);
   }
   db.prepare('INSERT INTO offers (listing_id, user_id, amount_usd, funding, phone, message) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(listing.id, req.user.id, amount, funding, clean(req.body.phone, 40), clean(req.body.message, 3000));
+    .run(listing.id, req.user.id, amount, funding, phone, clean(req.body.message, 3000));
   res.flash('success', `Your offer of ${fmtMoney(amount)} has been sent. We'll pass it to the owner and arrange the next steps with you. You can track it from your dashboard.`);
   res.redirect(`/mines/${listing.slug}#buy`);
 });
@@ -360,6 +362,7 @@ app.get('/sell', (req, res) => {
 
 app.post('/sell', requireLogin, handleUpload, verifyCsrf, (req, res) => {
   const { data, errors } = listingFromForm(req.body, req.files);
+  if (!isPhone(data.contact_phone || '')) errors.push('Enter a valid phone number so we can reach you.');
   if (req.body.agree !== 'on') errors.push('Please confirm you have the right to sell and accept the terms.');
   if (errors.length) {
     removeUploads(req.files);
@@ -396,6 +399,8 @@ app.post('/my/listings/:id/edit', requireLogin, handleUpload, verifyCsrf, (req, 
   const l = ownedListing(req);
   if (!l) { removeUploads(req.files); return res.status(404).render('404', { title: 'Listing not found' }); }
   const { data, errors } = listingFromForm(req.body, req.files);
+  // Launch listings have no contact number, so admins can still edit them.
+  if (req.user.role !== 'admin' && !isPhone(data.contact_phone || '')) errors.push('Enter a valid phone number so we can reach you.');
   if (errors.length) {
     removeUploads(req.files);
     return res.status(400).render('sell', { title: `Edit ${l.title}`, form: { ...req.body, documents: data.documents, images: l.images }, errors, editing: l });
@@ -470,11 +475,12 @@ app.post('/register', (req, res) => {
   const errors = [];
   if (!form.name) errors.push('Please tell us your name.');
   if (!isEmail(form.email)) errors.push('Please enter a valid email address.');
+  if (!isPhone(form.phone)) errors.push('Please enter a valid phone number.');
   if (password.length < 8) errors.push('Your password needs at least 8 characters.');
   if (req.body.agree !== 'on') errors.push('Please accept the Terms & Conditions and Privacy Policy.');
   if (!errors.length && db.prepare('SELECT 1 FROM users WHERE email = ?').get(form.email)) errors.push('There is already an account with that email. Try signing in instead.');
   if (errors.length) return res.status(400).render('register', { title: 'Create an account', next: next || '', form, errors });
-  const info = db.prepare('INSERT INTO users (name, email, phone, password_hash) VALUES (?, ?, ?, ?)').run(form.name, form.email, form.phone || null, hashPassword(password));
+  const info = db.prepare('INSERT INTO users (name, email, phone, password_hash) VALUES (?, ?, ?, ?)').run(form.name, form.email, form.phone, hashPassword(password));
   startSession(res, info.lastInsertRowid);
   res.flash('success', `Welcome aboard, ${form.name.split(' ')[0]}! Your account is ready.`);
   res.redirect(next || '/dashboard');
@@ -503,6 +509,7 @@ app.post('/account', requireLogin, (req, res) => {
   const name = clean(req.body.name, 100);
   const phone = clean(req.body.phone, 40);
   if (!name) errors.push('Your name cannot be empty.');
+  if (req.user.role !== 'admin' && !isPhone(phone)) errors.push('Please enter a valid phone number.');
   const newPassword = String(req.body.new_password || '');
   if (newPassword) {
     const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user.id);
@@ -532,10 +539,11 @@ app.get('/contact', (req, res) => res.render('contact', { title: 'Contact us' })
 app.post('/contact', (req, res) => {
   const name = clean(req.body.name, 100);
   const email = clean(req.body.email, 150);
+  const phone = clean(req.body.phone, 40);
   const message = clean(req.body.message, 3000);
   if (req.body.website) return res.redirect('/contact');
-  if (!name || !isEmail(email) || !message) {
-    res.flash('error', 'Please fill in your name, a valid email and your message.');
+  if (!name || !isEmail(email) || !isPhone(phone) || !message) {
+    res.flash('error', 'Please fill in your name, a valid email, a valid phone number and your message.');
     return res.redirect('/contact');
   }
   db.prepare(`INSERT INTO enquiries (user_id, kind, name, email, phone, message) VALUES (?, 'general', ?, ?, ?, ?)`)

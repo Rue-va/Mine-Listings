@@ -19,6 +19,9 @@ To choose your own admin login, set it before the first start:
 ADMIN_EMAIL=you@yourdomain.com ADMIN_PASSWORD='something-strong' npm start
 ```
 
+Locked out of the admin account? Set `ADMIN_RESET_PASSWORD` and restart. The new password is applied on startup and the
+admin email is printed in the logs. Remove the variable afterwards, or the password resets on every restart.
+
 To start over from scratch, stop the server and delete the `data/` folder.
 
 ## Settings

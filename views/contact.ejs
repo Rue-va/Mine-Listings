@@ -12,7 +12,7 @@
     <div class="hp" aria-hidden="true"><label>Leave this empty <input name="website" tabindex="-1" autocomplete="off"></label></div>
     <div class="field"><label for="c-name">Your name</label><input id="c-name" name="name" required value="<%= user ? user.name : '' %>"></div>
     <div class="field"><label for="c-email">Email</label><input id="c-email" type="email" name="email" required value="<%= user ? user.email : '' %>"></div>
-    <div class="field"><label for="c-phone">Phone / WhatsApp <small class="muted">(optional)</small></label><input id="c-phone" name="phone" value="<%= user && user.phone ? user.phone : '' %>"></div>
+    <div class="field"><label for="c-phone">Phone / WhatsApp</label><input id="c-phone" type="tel" name="phone" required value="<%= user && user.phone ? user.phone : '' %>"></div>
     <div class="field"><label for="c-msg">How can we help?</label><textarea id="c-msg" name="message" rows="6" required placeholder="e.g. I'm looking for 50–100ha of gold oxides in the Midlands with power nearby, budget around US$500k."></textarea></div>
     <p class="small muted">By sending this you agree to our <a href="/privacy">Privacy Policy</a>. We'll only use your details to reply.</p>
     <button class="btn">Send message</button>

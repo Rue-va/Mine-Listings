@@ -11,7 +11,7 @@
       <input type="hidden" name="next" value="<%= next %>">
       <div class="field"><label for="r-name">Full name</label><input id="r-name" name="name" required autocomplete="name" value="<%= form.name || '' %>"></div>
       <div class="field"><label for="r-email">Email</label><input id="r-email" type="email" name="email" required autocomplete="email" value="<%= form.email || '' %>"></div>
-      <div class="field"><label for="r-phone">Phone / WhatsApp <small class="muted">(optional)</small></label><input id="r-phone" name="phone" autocomplete="tel" value="<%= form.phone || '' %>" placeholder="+263…"></div>
+      <div class="field"><label for="r-phone">Phone / WhatsApp</label><input id="r-phone" type="tel" name="phone" required autocomplete="tel" value="<%= form.phone || '' %>" placeholder="+263…"></div>
       <div class="field"><label for="r-pw">Password</label><input id="r-pw" type="password" name="password" required minlength="8" autocomplete="new-password"><small class="muted">At least 8 characters.</small></div>
       <label class="check small"><input type="checkbox" name="agree" required> I've read and accept the <a href="/terms" target="_blank">Terms &amp; Conditions</a> and <a href="/privacy" target="_blank">Privacy Policy</a>.</label>
       <button class="btn btn-block">Create account</button>
